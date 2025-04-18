@@ -10,7 +10,7 @@ export default class MCPClient {
     private transport: StdioClientTransport | null = null;
     private tools: Tool[] = [];
 
-    constructor(name: string, command: string, args: string[], version?: string) {
+    constructor(private name: string, command: string, args: string[], version?: string) {
         this.mcp = new Client({ name, version: version || "0.0.1" });
         this.command = command;
         this.args = args;
@@ -51,7 +51,7 @@ export default class MCPClient {
                 };
             });
             logMCPConnection(
-                `Connected to server with tools: ${this.tools.map(({ name }) => name).join(', ')}`
+                `Connected to ${this.name} server with tools: ${this.tools.map(({ name }) => name).join(', ')}`
             );
         } catch (e) {
             logError("Failed to connect to MCP server: ", e as Error);

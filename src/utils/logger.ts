@@ -27,3 +27,8 @@ export function logError(message: string, error?: Error) {
     }
 }
 
+export function logSystem(message: string) {
+    console.log(
+        `${chalk.cyan('⚙️ [SYSTEM]')} ${chalk.bold.yellow(message)}`
+    );
+}

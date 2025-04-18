@@ -1,13 +1,12 @@
 import OpenAI from 'openai';
 import { BaseChat, ToolCall } from './BaseChat';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { logLLMOutput } from '../utils/logger';
+import { logError, logLLMOutput } from '../utils/logger';
 
 export interface ChatOpenAIOptions {
     apiKey: string;
     baseURL: string;
     model: string;
-    mcpTools: Tool[];
     systemPrompt?: string;
 }
 
@@ -16,7 +15,7 @@ export class ChatOpenAI extends BaseChat<OpenAI.ChatCompletionMessageParam> {
     private model: string;
 
     constructor(options: ChatOpenAIOptions) {
-        super(options.mcpTools, options.systemPrompt);
+        super(options.systemPrompt);
         this.openai = new OpenAI({ apiKey: options.apiKey, baseURL: options.baseURL });
         this.model = options.model;
     }
@@ -48,14 +47,28 @@ export class ChatOpenAI extends BaseChat<OpenAI.ChatCompletionMessageParam> {
             };
         } else {
             this.messages.push({ role: 'assistant', content: response });
+            // If no tool calls, return null
             return { content: response, toolCalls: null };
         }
+    }
+
+    public appendToolResult(result: string, toolCallId?: string): void {
+        if (!toolCallId) {
+            logError('Tool call ID is required');
+            throw new Error('Tool call ID is required');
+        }
+        this.messages.push({ role: 'tool', content: result, tool_call_id: toolCallId });
+    }
+
+    public setTools(tools: Tool[]): void {
+        this.mcpTools = tools;
     }
 
     protected addSystemPrompt(prompt: string): void {
         this.messages.unshift({ role: 'system', content: prompt });
     }
 
+    // Get tools definition for OpenAI
     private getToolsDefinition(): OpenAI.ChatCompletionTool[] {
         return this.mcpTools.map(tool => ({
             type: 'function',
