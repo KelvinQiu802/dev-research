@@ -2,6 +2,8 @@ import OpenAI from 'openai';
 import { BaseChat, ToolCall } from './BaseChat';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { logError, logLLMOutput } from '../utils/logger';
+import { z } from 'zod';
+import { zodResponseFormat } from 'openai/helpers/zod';
 
 export interface ChatOpenAIOptions {
     apiKey: string;
@@ -20,12 +22,13 @@ export class ChatOpenAI extends BaseChat<OpenAI.ChatCompletionMessageParam> {
         this.model = options.model;
     }
 
-    async chat(prompt?: string): Promise<{ content: string, toolCalls: ToolCall[] | null }> {
+    async chat(prompt?: string, outputSchema?: z.ZodSchema): Promise<{ content: string, toolCalls: ToolCall[] | null }> {
         if (prompt) this.messages.push({ role: 'user', content: prompt });
-        const params: any = {
+        const params: OpenAI.ChatCompletionCreateParamsNonStreaming = {
             model: this.model,
             messages: this.messages,
             tools: this.getToolsDefinition(),
+            response_format: outputSchema ? zodResponseFormat(outputSchema, 'json_schema') : undefined,
         };
         // Invoke LLM
         const res = await this.openai.chat.completions.create(params);

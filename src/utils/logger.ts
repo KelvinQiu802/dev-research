@@ -8,7 +8,7 @@ export function logMCPConnection(message: string) {
 
 export function logToolCall(toolName: string, message: string) {
     console.log(
-        `${chalk.green('🛠️ [Tool]')} ${chalk.bold.green(toolName)}: ${chalk.white(message)}`
+        `${chalk.green('🛠️ [Tool] Calling')} ${chalk.bold.green(toolName)}: ${chalk.white(message)}`
     );
 }
 

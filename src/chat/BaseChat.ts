@@ -1,4 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 
 export interface ToolCall {
     name: string;
@@ -18,6 +19,7 @@ export abstract class BaseChat<TMessage> {
 
     abstract chat(
         prompt?: string,
+        outputSchema?: z.ZodSchema,
     ): Promise<{ content: string, toolCalls: ToolCall[] | null }>;
 
     abstract appendToolResult(result: string, toolCallId?: string): void;

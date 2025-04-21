@@ -1,6 +1,6 @@
 import { BaseChat } from "../chat/BaseChat";
 import MCPClient from "../tools/MCPClient";
-import { logError, logSystem } from "../utils/logger";
+import { logError, logLLMOutput, logSystem } from "../utils/logger";
 
 export default class DevResearch<TMessage> {
     private initialized = false;
@@ -25,12 +25,10 @@ export default class DevResearch<TMessage> {
         }
     }
 
-    async research() {
+    async research(topic: string) {
         if (!this.initialized) {
             logError('DevResearch not initialized');
             return;
         }
-        const { content, toolCalls } = await this.planner.chat('Search MCP');
-        console.log(toolCalls);
     }
 }
