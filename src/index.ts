@@ -3,6 +3,7 @@ import { ChatOpenAI } from './chat/ChatOpenAI';
 import { logError } from './utils/logger';
 import MCPClient from './tools/MCPClient';
 import DevResearch from './agent/DevResearch';
+import { plannerSystemPrompt } from './prompt/planner';
 
 const plannerAPIKey = process.env.PLANNER_API_KEY;
 const plannerBaseURL = process.env.PLANNER_BASE_URL;
@@ -25,11 +26,12 @@ async function main() {
         apiKey: plannerAPIKey,
         baseURL: plannerBaseURL,
         model: plannerModelName,
+        systemPrompt: plannerSystemPrompt
     });
 
     const devResearch = new DevResearch(planner, [tavily]);
     await devResearch.init();
-    await devResearch.research('MCP');
+    await devResearch.research();
     await devResearch.close();
 }
 
