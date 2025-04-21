@@ -34,10 +34,11 @@ export default class DevResearch<TMessage> {
             return;
         }
 
-        await this.filnalizeResearTopic()
+        const topic = await this.finalizeResearchTopic()
+        logSystem(`Final research topic: ${topic}`);
     }
 
-    private async filnalizeResearTopic() {
+    private async finalizeResearchTopic() {
         const rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout
@@ -45,52 +46,46 @@ export default class DevResearch<TMessage> {
         // Get the initial research topic from the user
         const userInputTopic = await new Promise<string>((resolve) => {
             rl.question('🔍 Please input the research topic: ', (answer: string) => {
-                rl.close()
                 resolve(answer);
             });
         });
-        // HIL
-        let finalTopic = null
+        let finalTopic = null;
         let isDone = false;
         let userFeedback = null;
-        do {
-            const { content, toolCalls } = await this.planner.chat(getPlannerPrompt(userInputTopic, userFeedback), plannerResponseSchema);
-            // When calling tool, the content might be null
-            if (content) {
-                try {
+        while (!isDone) {
+            try {
+                const { content, toolCalls } = await this.planner.chat(getPlannerPrompt(userInputTopic, userFeedback), plannerResponseSchema);
+                // Call tools in parallel
+                if (toolCalls && toolCalls.length > 0) {
+                    await Promise.all(toolCalls.map(async (toolCall) => {
+                        logToolCall(toolCall.name, toolCall.arguments);
+                        const targetMCPClient = this.mcpClients.find(mcpClient => mcpClient.getTools().find(tool => tool.name === toolCall.name));
+                        if (targetMCPClient) {
+                            const result = await targetMCPClient.callTool(toolCall.name, JSON.parse(toolCall.arguments));
+                            this.planner.appendToolResult(JSON.stringify(result), toolCall.id);
+                        }
+                    }));
+                }
+                // Parse the response
+                if (content) {
                     const parsed = plannerResponseSchema.parse(JSON.parse(content));
                     finalTopic = parsed.topic;
                     isDone = parsed.done;
-                    // If the topic is finalized, break the loop
-                    if (isDone) break;
-                    // Ask the user to give feedback
-                    const rl = readline.createInterface({
-                        input: process.stdin,
-                        output: process.stdout
-                    });
-                    userFeedback = await new Promise<string>((resolve) => {
-                        rl.question('💬 Please give feedback: ', (answer: string) => {
-                            rl.close()
-                            resolve(answer);
+                    if (!isDone) {
+                        userFeedback = await new Promise<string>((resolve) => {
+                            rl.question('💬 Please give feedback: ', (answer: string) => {
+                                resolve(answer);
+                            });
                         });
-                    });
-                } catch (error) {
-                    logError(`Failed to parse the response: ${error}`);
-                }
-            }
-            // If there are tool calls, call the tool
-            if (toolCalls) {
-                for (const toolCall of toolCalls) {
-                    logToolCall(toolCall.name, toolCall.arguments);
-                    const targetMCPClient = this.mcpClients.find(mcpClient => mcpClient.getTools().find(tool => tool.name === toolCall.name));
-                    if (targetMCPClient) {
-                        const result = await targetMCPClient.callTool(toolCall.name, JSON.parse(toolCall.arguments));
-                        this.planner.appendToolResult(JSON.stringify(result), toolCall.id);
                     }
                 }
+            } catch (error) {
+                logError(`Error in research topic planning loop: ${error}`);
+                rl.close();
+                throw error;
             }
-        } while (true)
-        logSystem(`Final topic: ${finalTopic}`);
-        return finalTopic
+        }
+        rl.close();
+        return finalTopic;
     }
 }
