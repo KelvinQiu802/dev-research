@@ -34,8 +34,9 @@ export default class DevResearch<TMessage> {
             return;
         }
 
+        // Step 1: Finalize the research topic
         const topic = await this.finalizeResearchTopic()
-        logSystem(`Final research topic: ${topic}`);
+        logSystem(`✅ Final research topic: ${topic}`);
     }
 
     private async finalizeResearchTopic() {
